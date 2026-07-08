@@ -12,7 +12,7 @@ export async function analyzeImageWithGemini(imagePath, mimeType) {
   const imageBytes = fs.readFileSync(imagePath);
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-2.5-flash-lite",
     contents: [
       {
         inlineData: {
