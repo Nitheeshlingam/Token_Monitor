@@ -3,27 +3,26 @@ import { getDashboardSummary } from "../api/dashboardApi";
 import "./DashboardCards.css";
 
 export default function DashboardCards() {
+  const [filter, setFilter] = useState("today");
+
   const [dashboard, setDashboard] = useState({
     totalRequests: 0,
     inputTokens: 0,
     outputTokens: 0,
     billableTokens: 0,
     estimatedCost: 0,
-    avgLatency: 0,
     successRequests: 0,
     failedRequests: 0,
   });
 
-  // USD to INR Exchange Rate
-  const USD_TO_INR = 86;
-
-  // Convert USD cost to INR
+  // USD → INR
+  const USD_TO_INR = 95.45;
   const estimatedCostInr =
     Number(dashboard.estimatedCost) * USD_TO_INR;
 
   const loadDashboard = async () => {
     try {
-      const res = await getDashboardSummary();
+      const res = await getDashboardSummary(filter);
 
       console.log(res.data);
 
@@ -39,13 +38,33 @@ export default function DashboardCards() {
     const interval = setInterval(loadDashboard, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [filter]);
 
   return (
     <div className="cards">
 
+      {/* Requests Card */}
       <div className="card">
-        <h3>Today's Requests</h3>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          style={{
+            border: "none",
+            fontSize: "16px",
+            marginBottom: "10px",
+            cursor: "pointer",
+            background: "transparent",
+            fontWeight: "bold",
+          }}
+        >
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="last7days">Last 7 Days</option>
+          <option value="all">All Time</option>
+        </select>
+
+        <h3>Total Requests</h3>
+
         <h1>{dashboard.totalRequests}</h1>
       </div>
 
@@ -67,11 +86,6 @@ export default function DashboardCards() {
       <div className="card">
         <h3>Estimated Cost (INR)</h3>
         <h1>₹{estimatedCostInr.toFixed(4)}</h1>
-      </div>
-
-      <div className="card">
-        <h3>Average Latency</h3>
-        <h1>{Number(dashboard.avgLatency).toFixed(0)} ms</h1>
       </div>
 
       <div className="card">

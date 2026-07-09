@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import DashboardCards from "./components/DashboardCards";
 import DailyUsageChart from "./components/DailyUsageChart";
+import ImageAnalysis from "./components/ImageAnalysis";
 import "./App.css";
 
 function App() {
@@ -19,23 +20,23 @@ function App() {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/image/upload",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      "http://localhost:5000/api/image/upload",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
 
-      console.log("Success:", res.data);
+    console.log("Upload Response:", res.data);
 
-      setDescription(res.data.description);
+    setDescription(res.data.description);
 
-      alert("Image analyzed successfully!");
+    alert("Image analyzed successfully!");
 
-      // Refresh dashboard
-      window.location.reload();
+      // ❌ Do NOT reload the page
+      // window.location.reload();
 
     } catch (err) {
       console.error(err);
@@ -56,7 +57,7 @@ function App() {
       <div className="upload-box">
         <input
           type="file"
-          accept="image/*"
+          accept="image/*,.pdf"
           onChange={(e) => setImage(e.target.files[0])}
         />
 
@@ -65,27 +66,14 @@ function App() {
         </button>
       </div>
 
-      {/* Dashboard Summary Cards */}
+      {/* Dashboard */}
       <DashboardCards />
 
-      {/* Daily Usage Chart */}
+      {/* Chart */}
       <DailyUsageChart />
 
-      {/* Gemini Response */}
-      {description && (
-        <div
-          style={{
-            marginTop: "30px",
-            background: "#fff",
-            padding: "20px",
-            borderRadius: "10px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-          }}
-        >
-          <h2>Gemini Response</h2>
-          <p>{description}</p>
-        </div>
-      )}
+      {/* AI Analysis */}
+      <ImageAnalysis description={description} />
 
     </div>
   );
