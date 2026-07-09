@@ -14,6 +14,13 @@ export default function DashboardCards() {
     failedRequests: 0,
   });
 
+  // USD to INR Exchange Rate
+  const USD_TO_INR = 86;
+
+  // Convert USD cost to INR
+  const estimatedCostInr =
+    Number(dashboard.estimatedCost) * USD_TO_INR;
+
   const loadDashboard = async () => {
     try {
       const res = await getDashboardSummary();
@@ -58,8 +65,8 @@ export default function DashboardCards() {
       </div>
 
       <div className="card">
-        <h3>Estimated Cost</h3>
-        <h1>${Number(dashboard.estimatedCost).toFixed(6)}</h1>
+        <h3>Estimated Cost (INR)</h3>
+        <h1>₹{estimatedCostInr.toFixed(4)}</h1>
       </div>
 
       <div className="card">

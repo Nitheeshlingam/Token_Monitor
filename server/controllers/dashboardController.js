@@ -13,6 +13,7 @@ export const getSummary = async (req, res) => {
         COALESCE(SUM(CASE WHEN status='SUCCESS' THEN 1 ELSE 0 END),0) AS successRequests,
         COALESCE(SUM(CASE WHEN status='FAILED' THEN 1 ELSE 0 END),0) AS failedRequests
       FROM request_logs
+      WHERE DATE(created_at) = CURDATE()
     `);
 
     res.json({
