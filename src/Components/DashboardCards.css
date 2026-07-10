@@ -22,3 +22,24 @@
     color:#2563eb;
     font-size:34px;
 }
+.dashboard-toolbar{
+    width:100%;
+    display:flex;
+    justify-content:flex-start;
+    align-items:center;
+    gap:12px;
+    margin-bottom:25px;
+}
+
+.dashboard-toolbar label{
+    font-size:18px;
+    font-weight:600;
+}
+
+.dashboard-toolbar select{
+    padding:10px 15px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    font-size:16px;
+    cursor:pointer;
+}

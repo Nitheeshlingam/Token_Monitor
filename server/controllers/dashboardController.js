@@ -4,27 +4,32 @@ export const getSummary = async (req, res) => {
   try {
     const filter = req.query.filter || "today";
 
-    let whereClause = "";
+    const model = req.query.model || "ALL";
+    let conditions = [];
 
     switch (filter) {
       case "today":
-        whereClause = "DATE(created_at) = CURDATE()";
+        conditions.push("DATE(created_at)=CURDATE()");
         break;
 
       case "yesterday":
-        whereClause = "DATE(created_at) = CURDATE() - INTERVAL 1 DAY";
+        conditions.push(
+          "DATE(created_at)=CURDATE()-INTERVAL 1 DAY"
+        );
         break;
 
       case "last7days":
-        whereClause = "created_at >= CURDATE() - INTERVAL 7 DAY";
+        conditions.push(
+          "created_at>=CURDATE()-INTERVAL 7 DAY"
+        );
         break;
 
       case "all":
-        whereClause = "1=1";
         break;
+    }
 
-      default:
-        whereClause = "DATE(created_at) = CURDATE()";
+    if (model !== "ALL") {
+      conditions.push(`model='${model}'`);
     }
 
     const [rows] = await db.execute(`
@@ -38,7 +43,11 @@ export const getSummary = async (req, res) => {
         COALESCE(SUM(CASE WHEN status='SUCCESS' THEN 1 ELSE 0 END),0) AS successRequests,
         COALESCE(SUM(CASE WHEN status='FAILED' THEN 1 ELSE 0 END),0) AS failedRequests
       FROM request_logs
-      WHERE ${whereClause}
+      WHERE ${
+        conditions.length
+          ? conditions.join(" AND ")
+          : "1=1"
+      }
     `);
 
     res.json({
