@@ -81,35 +81,37 @@ export const analyzeImage = async (req, res) => {
 
     // Save Request Log
     await db.execute(
-      `
-      INSERT INTO request_logs
-      (
-        provider,
-        model,
-        input_tokens,
-        output_tokens,
-        billable_tokens,
-        api_total_tokens,
-        estimated_cost,
-        latency_ms,
-        status,
-        image_name
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      [
-        "Gemini",
-        model,
-        inputTokens,
-        outputTokens,
-        billableTokens,
-        apiTotalTokens,
-        estimatedCost,
-        0,
-        "SUCCESS",
-        req.file.filename,
-      ]
-    );
+`
+INSERT INTO request_logs
+(
+    user_id,
+    provider,
+    model,
+    input_tokens,
+    output_tokens,
+    billable_tokens,
+    api_total_tokens,
+    estimated_cost,
+    latency_ms,
+    status,
+    image_name
+)
+VALUES (?,?,?,?,?,?,?,?,?,?,?)
+`,
+[
+    req.user.id,
+    "Gemini",
+    model,
+    inputTokens,
+    outputTokens,
+    billableTokens,
+    apiTotalTokens,
+    estimatedCost,
+    0,
+    "SUCCESS",
+    req.file.filename
+]
+);
 
     res.json({
       success: true,

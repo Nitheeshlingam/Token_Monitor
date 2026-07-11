@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import {
   getDashboardSummary,
   getModels,
+  getDetails,
 } from "../api/dashboardApi";
+
+import UserUsageModal from "./UserUsageModal";
+
 import "./DashboardCards.css";
 
 export default function DashboardCards() {
@@ -24,38 +28,43 @@ export default function DashboardCards() {
     failedRequests: 0,
   });
 
+  // Modal
+  const [openModal, setOpenModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [users, setUsers] = useState([]);
+
   const USD_TO_INR = 95.45;
 
   const estimatedCostInr =
-    Number(dashboard.estimatedCost) * USD_TO_INR;
+    Number(dashboard.estimatedCost || 0) * USD_TO_INR;
 
-  // -----------------------------------
-  // Load Models based on Date Range
-  // -----------------------------------
+  // ----------------------------
+  // Load Models
+  // ----------------------------
   const loadModels = async () => {
     try {
       const res = await getModels(startDate, endDate);
 
-      console.log("Models:", res.data);
+      setModels(res.data.models || []);
 
-      const modelList = res.data.models || [];
-
-      setModels(modelList);
-
-      if (modelList.length === 1) {
-        setSelectedModel(modelList[0]);
+      if (
+        res.data.models?.includes(selectedModel) ||
+        selectedModel === "ALL"
+      ) {
+        // keep current selection
       } else {
-        setSelectedModel("ALL");
+        setSelectedModel(
+          res.data.defaultModel || "ALL"
+        );
       }
-
     } catch (err) {
       console.error(err);
     }
   };
 
-  // -----------------------------------
+  // ----------------------------
   // Load Dashboard
-  // -----------------------------------
+  // ----------------------------
   const loadDashboard = async () => {
     try {
       const res = await getDashboardSummary(
@@ -64,27 +73,54 @@ export default function DashboardCards() {
         selectedModel
       );
 
-      console.log("Dashboard:", res.data);
-
       setDashboard(res.data.data);
-
     } catch (err) {
       console.error(err);
     }
   };
 
-  // -----------------------------------
-  // Reload Models when Date Changes
-  // -----------------------------------
+  // ----------------------------
+  // Load Details
+  // ----------------------------
+  const openDetails = async (type, title) => {
+  try {
+    console.log("Opening:", type);
+
+    const res = await getDetails(
+      type,
+      startDate,
+      endDate,
+      selectedModel
+    );
+
+    console.log("Details Response:", res.data);
+
+    setUsers(res.data.data || []);
+    setModalTitle(title);
+    setOpenModal(true);
+
+  } catch (err) {
+    console.error(err);
+  }
+};
+  // ----------------------------
+  // Initial Load
+  // ----------------------------
+  useEffect(() => {
+    loadModels();
+  }, []);
+
+  // ----------------------------
+  // Reload Models on Date Change
+  // ----------------------------
   useEffect(() => {
     loadModels();
   }, [startDate, endDate]);
 
-  // -----------------------------------
+  // ----------------------------
   // Reload Dashboard
-  // -----------------------------------
+  // ----------------------------
   useEffect(() => {
-
     loadDashboard();
 
     const interval = setInterval(() => {
@@ -92,14 +128,11 @@ export default function DashboardCards() {
     }, 5000);
 
     return () => clearInterval(interval);
-
   }, [startDate, endDate, selectedModel]);
 
   return (
     <>
       <div className="dashboard-toolbar">
-
-        {/* Date Filter */}
 
         <div className="date-filter">
 
@@ -108,7 +141,9 @@ export default function DashboardCards() {
           <input
             type="date"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={(e) =>
+              setStartDate(e.target.value)
+            }
           />
 
           <label>To:</label>
@@ -116,16 +151,16 @@ export default function DashboardCards() {
           <input
             type="date"
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={(e) =>
+              setEndDate(e.target.value)
+            }
           />
 
         </div>
 
-        {/* Model Filter */}
-
         <div className="model-filter">
 
-          <label>Select Model:</label>
+          <label>AI Model</label>
 
           <select
             value={selectedModel}
@@ -133,7 +168,6 @@ export default function DashboardCards() {
               setSelectedModel(e.target.value)
             }
           >
-
             {models.length > 1 && (
               <option value="ALL">
                 All Models
@@ -148,7 +182,6 @@ export default function DashboardCards() {
                 {model}
               </option>
             ))}
-
           </select>
 
         </div>
@@ -157,29 +190,71 @@ export default function DashboardCards() {
 
       <div className="cards">
 
-        <div className="card">
+        <div
+          className="card"
+          onClick={() =>
+            openDetails(
+              "requests",
+              "Total Requests"
+            )
+          }
+        >
           <h3>Total Requests</h3>
           <h1>{dashboard.totalRequests}</h1>
         </div>
 
-        <div className="card">
+        <div
+          className="card"
+          onClick={() =>
+            openDetails(
+              "input",
+              "Input Tokens"
+            )
+          }
+        >
           <h3>Input Tokens</h3>
           <h1>{dashboard.inputTokens}</h1>
         </div>
 
-        <div className="card">
+        <div
+          className="card"
+          onClick={() =>
+            openDetails(
+              "output",
+              "Output Tokens"
+            )
+          }
+        >
           <h3>Output Tokens</h3>
           <h1>{dashboard.outputTokens}</h1>
         </div>
 
-        <div className="card">
-          <h3>Billable Tokens</h3>
+        <div
+          className="card"
+          onClick={() =>
+            openDetails(
+              "billable",
+              "Billable Tokens"
+            )
+          }
+        >
+          <h3>Total Tokens</h3>
           <h1>{dashboard.billableTokens}</h1>
         </div>
 
-        <div className="card">
+        <div
+          className="card"
+          onClick={() =>
+            openDetails(
+              "cost",
+              "Estimated Cost"
+            )
+          }
+        >
           <h3>Estimated Cost (INR)</h3>
-          <h1>₹{estimatedCostInr.toFixed(4)}</h1>
+          <h1>
+            ₹{estimatedCostInr.toFixed(4)}
+          </h1>
         </div>
 
         <div className="card">
@@ -193,6 +268,16 @@ export default function DashboardCards() {
         </div>
 
       </div>
+
+      <UserUsageModal
+        open={openModal}
+        title={modalTitle}
+        users={users}
+        onClose={() =>
+          setOpenModal(false)
+        }
+      />
+
     </>
   );
 }

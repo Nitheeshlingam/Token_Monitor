@@ -8,7 +8,6 @@ export const getSummary = async (req, res) => {
     let conditions = [];
     let params = [];
 
-    // Date Range
     if (startDate) {
       conditions.push("DATE(rl.created_at) >= ?");
       params.push(startDate);
@@ -19,7 +18,6 @@ export const getSummary = async (req, res) => {
       params.push(endDate);
     }
 
-    // Model Filter
     if (model !== "ALL") {
       conditions.push("rl.model = ?");
       params.push(model);
@@ -195,5 +193,108 @@ export const getModels = async (req, res) => {
       success: false,
       message: err.message,
     });
+  }
+};
+
+// ===========================================
+// Dashboard Card Details
+// ===========================================
+
+export const getDetails = async (req, res) => {
+  try {
+    const {
+      type,
+      startDate,
+      endDate,
+      model = "ALL",
+    } = req.query;
+
+
+    let conditions = [];
+    let params = [];
+
+
+    if (startDate) {
+      conditions.push("DATE(rl.created_at) >= ?");
+      params.push(startDate);
+    }
+
+
+    if (endDate) {
+      conditions.push("DATE(rl.created_at) <= ?");
+      params.push(endDate);
+    }
+
+
+    if (model !== "ALL") {
+      conditions.push("rl.model = ?");
+      params.push(model);
+    }
+
+
+    const whereClause =
+      conditions.length > 0
+        ? `WHERE ${conditions.join(" AND ")}`
+        : "";
+
+
+    const [rows] = await db.execute(
+      `
+      SELECT
+
+        rl.id,
+
+        -- USER DETAILS
+        u.name,
+        u.email,
+
+        rl.provider,
+        rl.model,
+        rl.image_name,
+
+        rl.input_tokens,
+        rl.output_tokens,
+        rl.billable_tokens,
+
+        rl.estimated_cost,
+
+        rl.status,
+        rl.created_at
+
+
+      FROM request_logs rl
+
+
+      LEFT JOIN users u
+      ON rl.user_id = u.id
+
+
+      ${whereClause}
+
+
+      ORDER BY rl.created_at DESC
+
+      `,
+      params
+    );
+
+
+    res.json({
+      success:true,
+      type,
+      data:rows
+    });
+
+
+  } catch(err){
+
+    console.error(err);
+
+
+    res.status(500).json({
+      success:false,
+      message:err.message
+    });
+
   }
 };

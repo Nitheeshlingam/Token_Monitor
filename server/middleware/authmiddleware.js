@@ -1,101 +1,49 @@
-import db from "../config/db.js";
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-export const register = async (req, res) => {
-  console.log("Register API Hit");
+const authMiddleware = (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    // Get Authorization header
+    const authHeader = req.headers.authorization;
 
-    const [existing] = await db.execute("SELECT id FROM users WHERE email=?", [
-      email,
-    ]);
-
-    if (existing.length > 0) {
-      return res.status(400).json({
+    if (!authHeader) {
+      return res.status(401).json({
         success: false,
-        message: "Email already exists",
+        message: "Authorization header missing",
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Expected format:
+    // Authorization: Bearer <token>
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : authHeader;
 
-    await db.execute(
-      `INSERT INTO users(name,email,password)
-             VALUES(?,?,?)`,
-      [name, email, hashedPassword],
-    );
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Token missing",
+      });
+    }
 
-    res.json({
-      success: true,
-      message: "User registered successfully",
-    });
+    // Verify JWT
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Save logged-in user details
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      role: decoded.role,
+    };
+
+    next();
   } catch (err) {
-    console.log(err);
+    console.error("Auth Middleware Error:", err.message);
 
-    res.status(500).json({
+    return res.status(401).json({
       success: false,
-      message: err.message,
+      message: "Invalid or Expired Token",
     });
   }
 };
 
-export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const [rows] = await db.execute("SELECT * FROM users WHERE email=?", [
-      email,
-    ]);
-
-    if (rows.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid Email",
-      });
-    }
-
-    const user = rows[0];
-
-    const match = await bcrypt.compare(password, user.password);
-
-    if (!match) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid Password",
-      });
-    }
-
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "7d",
-      },
-    );
-
-    res.json({
-      success: true,
-
-      token,
-
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    });
-  } catch (err) {
-    console.log(err);
-
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
-  }
-};
+export default authMiddleware;
