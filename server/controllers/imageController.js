@@ -68,16 +68,26 @@ export const analyzeImage = async (req, res) => {
 
     const pricing = priceRows[0];
 
-    // Calculate Cost
-    const inputCost =
-      (inputTokens / 1000000) *
-      Number(pricing.input_price_per_million);
+    // ----------------------------------
+// Calculate Cost in INR
+// ----------------------------------
 
-    const outputCost =
-      (outputTokens / 1000000) *
-      Number(pricing.output_price_per_million);
+const USD_TO_INR = 95.45; // Exchange rate
 
-    const estimatedCost = inputCost + outputCost;
+const inputCostUSD =
+  (inputTokens / 1000000) *
+  Number(pricing.input_price_per_million);
+
+const outputCostUSD =
+  (outputTokens / 1000000) *
+  Number(pricing.output_price_per_million);
+
+const estimatedCostUSD = inputCostUSD + outputCostUSD;
+
+// Convert USD → INR
+const estimatedCost = Number(
+  (estimatedCostUSD * USD_TO_INR).toFixed(6)
+);
 
     // Save Request Log
     await db.execute(
@@ -106,7 +116,7 @@ VALUES (?,?,?,?,?,?,?,?,?,?,?)
     outputTokens,
     billableTokens,
     apiTotalTokens,
-    estimatedCost,
+    estimatedCost,   // Now stored in INR
     0,
     "SUCCESS",
     req.file.filename
@@ -114,12 +124,13 @@ VALUES (?,?,?,?,?,?,?,?,?,?,?)
 );
 
     res.json({
-      success: true,
-      description: response.text,
-      usage,
-      model,
-      estimatedCost,
-    });
+    success: true,
+    description: response.text,
+    usage,
+    model,
+    estimatedCost, // INR
+    currency: "INR",
+  });
 
   } catch (error) {
     console.error(error);

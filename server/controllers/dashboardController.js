@@ -1,6 +1,9 @@
 import db from "../config/db.js";
 
+// ===========================================
 // Dashboard Summary
+// ===========================================
+
 export const getSummary = async (req, res) => {
   try {
     const { startDate, endDate, model = "ALL" } = req.query;
@@ -39,13 +42,7 @@ export const getSummary = async (req, res) => {
 
         COALESCE(SUM(rl.billable_tokens),0) AS billableTokens,
 
-        COALESCE(
-          SUM(
-            (rl.input_tokens / 1000000) * mp.input_price_per_million +
-            (rl.output_tokens / 1000000) * mp.output_price_per_million
-          ),
-          0
-        ) AS estimatedCost,
+        COALESCE(SUM(rl.estimated_cost),0) AS estimatedCost,
 
         COALESCE(
           SUM(CASE WHEN rl.status='SUCCESS' THEN 1 ELSE 0 END),
@@ -58,9 +55,6 @@ export const getSummary = async (req, res) => {
         ) AS failedRequests
 
       FROM request_logs rl
-
-      LEFT JOIN model_pricing mp
-      ON rl.model = mp.model_name
 
       ${whereClause}
       `,
@@ -82,24 +76,35 @@ export const getSummary = async (req, res) => {
   }
 };
 
+// ===========================================
 // Request History
+// ===========================================
+
 export const getHistory = async (req, res) => {
   try {
+
     const [rows] = await db.execute(`
       SELECT
-        id,
-        provider,
-        model,
-        image_name,
-        input_tokens,
-        output_tokens,
-        billable_tokens,
-        estimated_cost,
-        latency_ms,
-        status,
-        created_at
-      FROM request_logs
-      ORDER BY created_at DESC
+        rl.id,
+        u.name,
+        u.email,
+        rl.provider,
+        rl.model,
+        rl.image_name,
+        rl.input_tokens,
+        rl.output_tokens,
+        rl.billable_tokens,
+        rl.estimated_cost,
+        rl.latency_ms,
+        rl.status,
+        rl.created_at
+
+      FROM request_logs rl
+
+      LEFT JOIN users u
+      ON rl.user_id = u.id
+
+      ORDER BY rl.created_at DESC
     `);
 
     res.json({
@@ -108,28 +113,42 @@ export const getHistory = async (req, res) => {
     });
 
   } catch (err) {
+
     console.error(err);
 
     res.status(500).json({
       success: false,
       message: err.message,
     });
+
   }
 };
 
-// Daily Usage Chart
+// ===========================================
+// Daily Usage
+// ===========================================
+
 export const getDailyUsage = async (req, res) => {
   try {
+
     const [rows] = await db.execute(`
       SELECT
         DATE(created_at) AS day,
+
         COUNT(*) AS requests,
+
         COALESCE(SUM(input_tokens),0) AS inputTokens,
+
         COALESCE(SUM(output_tokens),0) AS outputTokens,
+
         COALESCE(SUM(billable_tokens),0) AS billableTokens,
+
         COALESCE(SUM(estimated_cost),0) AS estimatedCost
+
       FROM request_logs
+
       GROUP BY DATE(created_at)
+
       ORDER BY DATE(created_at)
     `);
 
@@ -139,18 +158,24 @@ export const getDailyUsage = async (req, res) => {
     });
 
   } catch (err) {
+
     console.error(err);
 
     res.status(500).json({
       success: false,
       message: err.message,
     });
+
   }
 };
 
-// Dynamic Models based on Date Range
+// ===========================================
+// Models
+// ===========================================
+
 export const getModels = async (req, res) => {
   try {
+
     const { startDate, endDate } = req.query;
 
     let conditions = ["model IS NOT NULL"];
@@ -171,8 +196,11 @@ export const getModels = async (req, res) => {
     const [rows] = await db.execute(
       `
       SELECT DISTINCT model
+
       FROM request_logs
+
       ${whereClause}
+
       ORDER BY model
       `,
       params
@@ -183,25 +211,31 @@ export const getModels = async (req, res) => {
     res.json({
       success: true,
       models,
-      defaultModel: models.length === 1 ? models[0] : "ALL",
+      defaultModel:
+        models.length === 1
+          ? models[0]
+          : "ALL",
     });
 
   } catch (err) {
+
     console.error(err);
 
     res.status(500).json({
       success: false,
       message: err.message,
     });
+
   }
 };
 
 // ===========================================
-// Dashboard Card Details
+// Dashboard Details
 // ===========================================
 
 export const getDetails = async (req, res) => {
   try {
+
     const {
       type,
       startDate,
@@ -209,34 +243,28 @@ export const getDetails = async (req, res) => {
       model = "ALL",
     } = req.query;
 
-
     let conditions = [];
     let params = [];
-
 
     if (startDate) {
       conditions.push("DATE(rl.created_at) >= ?");
       params.push(startDate);
     }
 
-
     if (endDate) {
       conditions.push("DATE(rl.created_at) <= ?");
       params.push(endDate);
     }
-
 
     if (model !== "ALL") {
       conditions.push("rl.model = ?");
       params.push(model);
     }
 
-
     const whereClause =
       conditions.length > 0
         ? `WHERE ${conditions.join(" AND ")}`
         : "";
-
 
     const [rows] = await db.execute(
       `
@@ -244,56 +272,53 @@ export const getDetails = async (req, res) => {
 
         rl.id,
 
-        -- USER DETAILS
         u.name,
+
         u.email,
 
         rl.provider,
+
         rl.model,
+
         rl.image_name,
 
         rl.input_tokens,
+
         rl.output_tokens,
+
         rl.billable_tokens,
 
         rl.estimated_cost,
 
         rl.status,
+
         rl.created_at
 
-
       FROM request_logs rl
-
 
       LEFT JOIN users u
       ON rl.user_id = u.id
 
-
       ${whereClause}
 
-
       ORDER BY rl.created_at DESC
-
       `,
       params
     );
 
-
     res.json({
-      success:true,
+      success: true,
       type,
-      data:rows
+      data: rows,
     });
 
-
-  } catch(err){
+  } catch (err) {
 
     console.error(err);
 
-
     res.status(500).json({
-      success:false,
-      message:err.message
+      success: false,
+      message: err.message,
     });
 
   }

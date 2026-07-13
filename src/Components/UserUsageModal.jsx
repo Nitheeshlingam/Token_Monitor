@@ -37,7 +37,7 @@ export default function UserUsageModal({
                 <th>Input</th>
                 <th>Output</th>
                 <th>Billable</th>
-                <th>Cost ($)</th>
+                <th>Cost (₹)</th>
                 <th>Status</th>
                 <th>Date</th>
               </tr>
@@ -80,7 +80,7 @@ export default function UserUsageModal({
                     <td>{user.billable_tokens}</td>
 
                     <td>
-                      $
+                      ₹
                       {Number(
                         user.estimated_cost
                       ).toFixed(6)}
