@@ -1,325 +1,495 @@
 import db from "../config/db.js";
 
+
 // ===========================================
 // Dashboard Summary
 // ===========================================
 
 export const getSummary = async (req, res) => {
   try {
-    const { startDate, endDate, model = "ALL" } = req.query;
+
+    const {
+      startDate,
+      endDate,
+      model = "ALL"
+    } = req.query;
+
 
     let conditions = [];
     let params = [];
 
-    if (startDate) {
-      conditions.push("DATE(rl.created_at) >= ?");
+
+    if(startDate){
+      conditions.push(
+        "DATE(created_at) >= ?"
+      );
       params.push(startDate);
     }
 
-    if (endDate) {
-      conditions.push("DATE(rl.created_at) <= ?");
+
+    if(endDate){
+      conditions.push(
+        "DATE(created_at) <= ?"
+      );
       params.push(endDate);
     }
 
-    if (model !== "ALL") {
-      conditions.push("rl.model = ?");
+
+    if(model !== "ALL"){
+      conditions.push(
+        "model = ?"
+      );
       params.push(model);
     }
 
-    const whereClause =
-      conditions.length > 0
-        ? `WHERE ${conditions.join(" AND ")}`
-        : "";
+
+    const where =
+      conditions.length
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
+
 
     const [rows] = await db.execute(
-      `
-      SELECT
-        COUNT(*) AS totalRequests,
+`
+SELECT
 
-        COALESCE(SUM(rl.input_tokens),0) AS inputTokens,
+COUNT(*) AS totalRequests,
 
-        COALESCE(SUM(rl.output_tokens),0) AS outputTokens,
+COALESCE(
+SUM(input_tokens),0
+) AS inputTokens,
 
-        COALESCE(SUM(rl.billable_tokens),0) AS billableTokens,
 
-        COALESCE(SUM(rl.estimated_cost),0) AS estimatedCost,
+COALESCE(
+SUM(output_tokens),0
+) AS outputTokens,
 
-        COALESCE(
-          SUM(CASE WHEN rl.status='SUCCESS' THEN 1 ELSE 0 END),
-          0
-        ) AS successRequests,
 
-        COALESCE(
-          SUM(CASE WHEN rl.status='FAILED' THEN 1 ELSE 0 END),
-          0
-        ) AS failedRequests
+COALESCE(
+SUM(api_total_tokens),0
+) AS totalTokens,
 
-      FROM request_logs rl
 
-      ${whereClause}
-      `,
-      params
-    );
+COALESCE(
+SUM(estimated_cost),0
+) AS estimatedCost,
 
-    res.json({
-      success: true,
-      data: rows[0],
-    });
 
-  } catch (err) {
-    console.error(err);
+SUM(
+CASE 
+WHEN status='SUCCESS'
+THEN 1
+ELSE 0
+END
+) AS successRequests,
 
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
-  }
+
+SUM(
+CASE 
+WHEN status='FAILED'
+THEN 1
+ELSE 0
+END
+) AS failedRequests
+
+
+FROM request_logs
+
+${where}
+
+`,
+params
+);
+
+
+res.json({
+success:true,
+data:rows[0]
+});
+
+
+}catch(err){
+
+console.error(err);
+
+res.status(500).json({
+success:false,
+message:err.message
+});
+
+}
+
 };
+
+
+
 
 // ===========================================
 // Request History
 // ===========================================
 
-export const getHistory = async (req, res) => {
-  try {
+export const getHistory = async(req,res)=>{
 
-    const [rows] = await db.execute(`
-      SELECT
-        rl.id,
-        u.name,
-        u.email,
-        rl.provider,
-        rl.model,
-        rl.image_name,
-        rl.input_tokens,
-        rl.output_tokens,
-        rl.billable_tokens,
-        rl.estimated_cost,
-        rl.latency_ms,
-        rl.status,
-        rl.created_at
+try{
 
-      FROM request_logs rl
 
-      LEFT JOIN users u
-      ON rl.user_id = u.id
+const [rows]=await db.execute(
+`
+SELECT
 
-      ORDER BY rl.created_at DESC
-    `);
+id,
 
-    res.json({
-      success: true,
-      data: rows,
-    });
+user_name AS name,
 
-  } catch (err) {
+user_email AS email,
 
-    console.error(err);
+provider,
 
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+model,
 
-  }
+image_name,
+
+input_tokens,
+
+output_tokens,
+
+api_total_tokens AS total_tokens,
+
+estimated_cost,
+
+latency_ms,
+
+status,
+
+created_at
+
+
+FROM request_logs
+
+
+ORDER BY created_at DESC
+
+`
+);
+
+
+res.json({
+success:true,
+data:rows
+});
+
+
+}catch(err){
+
+console.error(err);
+
+res.status(500).json({
+success:false,
+message:err.message
+});
+
+}
+
 };
+
+
+
 
 // ===========================================
 // Daily Usage
 // ===========================================
 
-export const getDailyUsage = async (req, res) => {
-  try {
+export const getDailyUsage = async(req,res)=>{
 
-    const [rows] = await db.execute(`
-      SELECT
-        DATE(created_at) AS day,
 
-        COUNT(*) AS requests,
+try{
 
-        COALESCE(SUM(input_tokens),0) AS inputTokens,
 
-        COALESCE(SUM(output_tokens),0) AS outputTokens,
+const [rows]=await db.execute(
+`
 
-        COALESCE(SUM(billable_tokens),0) AS billableTokens,
+SELECT
 
-        COALESCE(SUM(estimated_cost),0) AS estimatedCost
 
-      FROM request_logs
+DATE(created_at) AS day,
 
-      GROUP BY DATE(created_at)
 
-      ORDER BY DATE(created_at)
-    `);
+COUNT(*) AS requests,
 
-    res.json({
-      success: true,
-      data: rows,
-    });
 
-  } catch (err) {
+SUM(input_tokens) AS inputTokens,
 
-    console.error(err);
 
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+SUM(output_tokens) AS outputTokens,
 
-  }
+
+SUM(api_total_tokens) AS totalTokens,
+
+
+SUM(estimated_cost) AS estimatedCost
+
+
+FROM request_logs
+
+
+GROUP BY DATE(created_at)
+
+
+ORDER BY day
+
+
+`
+);
+
+
+res.json({
+success:true,
+data:rows
+});
+
+
+}catch(err){
+
+console.error(err);
+
+res.status(500).json({
+success:false,
+message:err.message
+});
+
+}
+
+
 };
+
+
+
 
 // ===========================================
 // Models
 // ===========================================
 
-export const getModels = async (req, res) => {
-  try {
+export const getModels = async(req,res)=>{
 
-    const { startDate, endDate } = req.query;
+try{
 
-    let conditions = ["model IS NOT NULL"];
-    let params = [];
 
-    if (startDate) {
-      conditions.push("DATE(created_at) >= ?");
-      params.push(startDate);
-    }
+const [rows]=await db.execute(
+`
 
-    if (endDate) {
-      conditions.push("DATE(created_at) <= ?");
-      params.push(endDate);
-    }
+SELECT DISTINCT model
 
-    const whereClause = `WHERE ${conditions.join(" AND ")}`;
+FROM request_logs
 
-    const [rows] = await db.execute(
-      `
-      SELECT DISTINCT model
+WHERE model IS NOT NULL
 
-      FROM request_logs
+ORDER BY model
 
-      ${whereClause}
 
-      ORDER BY model
-      `,
-      params
-    );
+`
+);
 
-    const models = rows.map((row) => row.model);
 
-    res.json({
-      success: true,
-      models,
-      defaultModel:
-        models.length === 1
-          ? models[0]
-          : "ALL",
-    });
+res.json({
 
-  } catch (err) {
+success:true,
 
-    console.error(err);
+models:
+rows.map(r=>r.model),
 
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+defaultModel:"ALL"
 
-  }
+});
+
+
+}catch(err){
+
+console.error(err);
+
+res.status(500).json({
+success:false,
+message:err.message
+});
+
+}
+
 };
 
+
+
+
 // ===========================================
-// Dashboard Details
+// Details
 // ===========================================
 
-export const getDetails = async (req, res) => {
-  try {
 
-    const {
-      type,
-      startDate,
-      endDate,
-      model = "ALL",
-    } = req.query;
+export const getDetails = async(req,res)=>{
 
-    let conditions = [];
-    let params = [];
+try{
 
-    if (startDate) {
-      conditions.push("DATE(rl.created_at) >= ?");
-      params.push(startDate);
-    }
 
-    if (endDate) {
-      conditions.push("DATE(rl.created_at) <= ?");
-      params.push(endDate);
-    }
+const [rows]=await db.execute(
+`
 
-    if (model !== "ALL") {
-      conditions.push("rl.model = ?");
-      params.push(model);
-    }
+SELECT
 
-    const whereClause =
-      conditions.length > 0
-        ? `WHERE ${conditions.join(" AND ")}`
-        : "";
 
-    const [rows] = await db.execute(
-      `
-      SELECT
+id,
 
-        rl.id,
+user_name AS name,
 
-        u.name,
+user_email AS email,
 
-        u.email,
+provider,
 
-        rl.provider,
+model,
 
-        rl.model,
+image_name,
 
-        rl.image_name,
+input_tokens,
 
-        rl.input_tokens,
+output_tokens,
 
-        rl.output_tokens,
+api_total_tokens AS total_tokens,
 
-        rl.billable_tokens,
+estimated_cost,
 
-        rl.estimated_cost,
+status,
 
-        rl.status,
+created_at
 
-        rl.created_at
 
-      FROM request_logs rl
+FROM request_logs
 
-      LEFT JOIN users u
-      ON rl.user_id = u.id
 
-      ${whereClause}
+ORDER BY created_at DESC
 
-      ORDER BY rl.created_at DESC
-      `,
-      params
-    );
 
-    res.json({
-      success: true,
-      type,
-      data: rows,
-    });
+`
+);
 
-  } catch (err) {
 
-    console.error(err);
+res.json({
 
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+success:true,
 
-  }
+data:rows
+
+});
+
+
+}catch(err){
+
+console.error(err);
+
+
+res.status(500).json({
+
+success:false,
+
+message:err.message
+
+});
+
+
+}
+
+};
+
+
+
+
+// ===========================================
+// Application Dashboard
+// ===========================================
+
+
+export const getApplicationDashboard = async(req,res)=>{
+
+
+try{
+
+
+const {id}=req.params;
+
+
+const [[summary]]=await db.execute(
+
+`
+
+SELECT
+
+
+COUNT(*) AS total_requests,
+
+
+COALESCE(
+SUM(input_tokens),0
+) AS input_tokens,
+
+
+COALESCE(
+SUM(output_tokens),0
+) AS output_tokens,
+
+
+COALESCE(
+SUM(api_total_tokens),0
+) AS total_tokens,
+
+
+COALESCE(
+SUM(estimated_cost),0
+) AS total_cost,
+
+
+SUM(
+status='SUCCESS'
+) AS success_requests,
+
+
+SUM(
+status='FAILED'
+) AS failed_requests
+
+
+FROM request_logs
+
+
+WHERE project_id=?
+
+
+`,
+
+[id]
+
+);
+
+
+
+res.json({
+
+success:true,
+
+summary
+
+});
+
+
+}catch(err){
+
+console.error(err);
+
+
+res.status(500).json({
+
+success:false,
+
+message:err.message
+
+});
+
+
+}
+
 };

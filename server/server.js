@@ -6,6 +6,8 @@ import imageRoutes from "./routes/ImageRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import sdkRoutes from "./routes/sdkRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import applicationRoutes from "./routes/applicationRoutes.js";
+console.log("✅ applicationRoutes imported");
 dotenv.config();
 
 const app = express();
@@ -16,6 +18,7 @@ app.use("/api/image", imageRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/sdk", sdkRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/applications", applicationRoutes);
 app.get("/", (req, res) => {
 
     res.json({

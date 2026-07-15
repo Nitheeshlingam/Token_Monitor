@@ -1,14 +1,14 @@
 import express from "express";
+import { saveSdkLog } from "../controllers/sdkController.js";
+import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/log", (req, res) => {
-    console.log(req.body);
-
-    res.json({
-        success: true,
-        message: "SDK Log Received"
-    });
-});
+// SDK Telemetry Log
+router.post(
+  "/log",
+  authMiddleware,
+  saveSdkLog
+);
 
 export default router;
