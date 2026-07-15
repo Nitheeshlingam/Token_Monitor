@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
+import db from "../config/db.js";
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
-    // Get Authorization header
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
@@ -12,8 +12,6 @@ const authMiddleware = (req, res, next) => {
       });
     }
 
-    // Expected format:
-    // Authorization: Bearer <token>
     const token = authHeader.startsWith("Bearer ")
       ? authHeader.split(" ")[1]
       : authHeader;
@@ -25,19 +23,46 @@ const authMiddleware = (req, res, next) => {
       });
     }
 
+    console.log("========== AUTH ==========");
+    console.log("JWT Token:", token);
+
     // Verify JWT
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Save logged-in user details
-    req.user = {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role,
-    };
+    console.log("Decoded Token:", decoded);
+
+    // Get latest user from DB
+    const [rows] = await db.execute(
+      `
+      SELECT
+        id,
+        name,
+        email,
+        role
+      FROM users
+      WHERE id = ?
+      `,
+      [decoded.id]
+    );
+
+    console.log("Database Result:", rows);
+
+    if (rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    req.user = rows[0];
+
+    console.log("Authenticated User:", req.user);
+    console.log("==========================");
 
     next();
+
   } catch (err) {
-    console.error("Auth Middleware Error:", err.message);
+    console.error("AUTH ERROR:", err);
 
     return res.status(401).json({
       success: false,

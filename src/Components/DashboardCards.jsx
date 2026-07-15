@@ -18,14 +18,15 @@ export default function DashboardCards() {
   const [selectedModel, setSelectedModel] = useState("ALL");
 
   const [dashboard, setDashboard] = useState({
-    totalRequests: 0,
-    inputTokens: 0,
-    outputTokens: 0,
-    billableTokens: 0,
-    estimatedCost: 0,
-    successRequests: 0,
-    failedRequests: 0,
-  });
+  totalRequests: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  billableTokens: 0,
+  estimatedCost: 0,
+  averageLatency: 0,
+  successRequests: 0,
+  failedRequests: 0,
+});
 
   // Modal State
   const [openModal, setOpenModal] = useState(false);
@@ -268,6 +269,19 @@ export default function DashboardCards() {
             ₹{estimatedCost.toFixed(6)}
           </h1>
         </div>
+
+        <div
+  className="card"
+  onClick={() =>
+    openDetails(
+      "latency",
+      "Latency"
+    )
+  }
+>
+  <h3>Avg Latency</h3>
+  <h1>{Math.round(dashboard.averageLatency)} ms</h1>
+</div>
 
         <div className="card">
           <h3>Success</h3>

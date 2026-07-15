@@ -66,14 +66,16 @@ SUM(output_tokens),0
 
 
 COALESCE(
-SUM(api_total_tokens),0
-) AS totalTokens,
-
+SUM(billable_tokens),0
+) AS billableTokens,
 
 COALESCE(
 SUM(estimated_cost),0
 ) AS estimatedCost,
 
+COALESCE(
+AVG(latency_ms),0
+) AS averageLatency,
 
 SUM(
 CASE 
@@ -333,7 +335,6 @@ const [rows]=await db.execute(
 
 SELECT
 
-
 id,
 
 user_name AS name,
@@ -344,26 +345,25 @@ provider,
 
 model,
 
-image_name,
-
 input_tokens,
 
 output_tokens,
+
+billable_tokens,
 
 api_total_tokens AS total_tokens,
 
 estimated_cost,
 
+latency_ms,
+
 status,
 
 created_at
 
-
 FROM request_logs
 
-
 ORDER BY created_at DESC
-
 
 `
 );
@@ -413,54 +413,47 @@ try{
 const {id}=req.params;
 
 
-const [[summary]]=await db.execute(
+const [[summary]] = await db.execute(
 
 `
 
 SELECT
 
-
 COUNT(*) AS total_requests,
-
 
 COALESCE(
 SUM(input_tokens),0
 ) AS input_tokens,
 
-
 COALESCE(
 SUM(output_tokens),0
 ) AS output_tokens,
 
+COALESCE(
+SUM(billable_tokens),0
+) AS billable_tokens,
 
 COALESCE(
 SUM(api_total_tokens),0
 ) AS total_tokens,
 
-
 COALESCE(
 SUM(estimated_cost),0
 ) AS total_cost,
-
 
 SUM(
 status='SUCCESS'
 ) AS success_requests,
 
-
 SUM(
 status='FAILED'
 ) AS failed_requests
 
-
 FROM request_logs
 
-
-WHERE project_id=?
-
+WHERE application_id = ?
 
 `,
-
 [id]
 
 );

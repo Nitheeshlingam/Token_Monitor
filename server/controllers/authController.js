@@ -22,7 +22,7 @@ export const register = async (req, res) => {
 
     await db.execute(
       `INSERT INTO users(name,email,password)
-             VALUES(?,?,?)`,
+           VALUES(?,?,?)`,
       [name, email, hashedPassword],
     );
 
@@ -42,11 +42,19 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
+
+    console.log("========== LOGIN ==========");
+    console.log("Body:", req.body);
+
     const { email, password } = req.body;
 
-    const [rows] = await db.execute("SELECT * FROM users WHERE email=?", [
-      email,
-    ]);
+    console.log("Email:", email);
+    console.log("Password:", password);
+
+    const [rows] = await db.execute(
+      "SELECT * FROM users WHERE email=?",
+      [email]
+    );
 
     if (rows.length === 0) {
       return res.status(400).json({

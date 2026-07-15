@@ -33,7 +33,7 @@ export default function UserUsageModal({
                 <th>Email</th>
                 <th>Provider</th>
                 <th>Model</th>
-                <th>Image</th>
+                <th>Latency (ms)</th>
                 <th>Input</th>
                 <th>Output</th>
                 <th>Billable</th>
@@ -71,7 +71,7 @@ export default function UserUsageModal({
 
                     <td>{user.model}</td>
 
-                    <td>{user.image_name}</td>
+                    <td>{user.latency_ms} ms</td>
 
                     <td>{user.input_tokens}</td>
 

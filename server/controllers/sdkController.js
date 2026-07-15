@@ -5,23 +5,27 @@ export const saveSdkLog = async (req, res) => {
   console.log("JWT User:", req.user);
   console.log("SDK Key:", req.headers["x-sdk-key"]);
   try {
-    const {
+   const {
   provider,
   model,
   usage,
   latency,
   status,
-
   prompt = null,
   imageName = null,
   errorMessage = null,
-
-  // Logged-in user from SDK
-  userId = null,
-  userName = null,
-  userEmail = null,
-
 } = req.body;
+
+// Logged-in user from JWT
+const userId = req.user?.id || null;
+const userName = req.user?.name || null;
+const userEmail = req.user?.email || null;
+
+console.log("Authenticated User:", {
+  userId,
+  userName,
+  userEmail,
+});
 
     // SDK Headers
     const sdkKey = req.headers["x-sdk-key"];
@@ -90,8 +94,20 @@ export const saveSdkLog = async (req, res) => {
 
       estimatedCost = inputCost + outputCost;
     }
-
+console.log("req.user =", req.user);
     // Save Request Log
+
+console.log("========== INSERT VALUES ==========");
+
+console.log([
+  userId,
+  userName,
+  userEmail,
+  application.id,
+  provider,
+  model
+]);
+
     await db.execute(
 `
 INSERT INTO request_logs
@@ -159,6 +175,20 @@ VALUES
   environment
 ]
 );
+const [lastRow] = await db.execute(`
+SELECT
+id,
+user_id,
+user_name,
+user_email,
+application_id
+FROM request_logs
+ORDER BY id DESC
+LIMIT 1
+`);
+
+console.log("LAST INSERT:");
+console.table(lastRow);
 
     res.json({
       success: true,

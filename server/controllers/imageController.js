@@ -2,8 +2,10 @@ import { analyzeImageWithGemini } from "../services/geminiService.js";
 import db from "../config/db.js";
 
 export const analyzeImage = async (req, res) => {
-  // Start latency timer
   const startTime = Date.now();
+
+  // Make user available to both try and catch
+  let user = null;
 
   try {
     if (!req.file) {
@@ -13,12 +15,29 @@ export const analyzeImage = async (req, res) => {
       });
     }
 
-    // Model selected by user
+    // Get logged-in user details
+    const [users] = await db.execute(
+      `
+      SELECT
+        name,
+        email
+      FROM users
+      WHERE id = ?
+      `,
+      [req.user.id]
+    );
+
+    if (users.length > 0) {
+      user = users[0];
+    }
+
+    console.log("Logged User:", user);
+
     const model = req.body.model || "gemini-2.5-flash-lite";
 
     let response;
 
-    // Retry Gemini API (3 attempts)
+    // Retry Gemini API
     for (let i = 0; i < 3; i++) {
       try {
         response = await analyzeImageWithGemini(
@@ -36,10 +55,8 @@ export const analyzeImage = async (req, res) => {
       }
     }
 
-    // Calculate latency AFTER Gemini responds
     const latencyMs = Date.now() - startTime;
 
-    // Token Usage
     const usage = response.usageMetadata || {};
 
     const inputTokens = usage.promptTokenCount || 0;
@@ -47,15 +64,14 @@ export const analyzeImage = async (req, res) => {
     const apiTotalTokens = usage.totalTokenCount || 0;
     const billableTokens = inputTokens + outputTokens;
 
-    // Get pricing
+    // Pricing
     const [priceRows] = await db.execute(
       `
       SELECT
         input_price_per_million,
         output_price_per_million
       FROM model_pricing
-      WHERE model_name = ?
-      AND effective_from <= CURDATE()
+      WHERE model_name=?
       ORDER BY effective_from DESC
       LIMIT 1
       `,
@@ -63,54 +79,54 @@ export const analyzeImage = async (req, res) => {
     );
 
     if (priceRows.length === 0) {
-      return res.status(500).json({
-        success: false,
-        message: `Pricing not found for model ${model}`,
-      });
+      throw new Error(`Pricing not found for ${model}`);
     }
 
     const pricing = priceRows[0];
 
-    // USD → INR
     const USD_TO_INR = 95.45;
 
-    const inputCostUSD =
-      (inputTokens / 1_000_000) *
+    const inputCost =
+      (inputTokens / 1000000) *
       Number(pricing.input_price_per_million);
 
-    const outputCostUSD =
-      (outputTokens / 1_000_000) *
+    const outputCost =
+      (outputTokens / 1000000) *
       Number(pricing.output_price_per_million);
 
     const estimatedCost = Number(
-      ((inputCostUSD + outputCostUSD) * USD_TO_INR).toFixed(6)
+      ((inputCost + outputCost) * USD_TO_INR).toFixed(6)
     );
 
-    // Save Request Log
+    // Save request log
     await db.execute(
       `
       INSERT INTO request_logs
       (
-          user_id,
-          project_id,
-          provider,
-          model,
-          input_tokens,
-          output_tokens,
-          billable_tokens,
-          api_total_tokens,
-          estimated_cost,
-          latency_ms,
-          status,
-          image_name,
-          sdk_key,
-          sdk_version,
-          environment
+        user_id,
+        user_name,
+        user_email,
+        project_id,
+        provider,
+        model,
+        input_tokens,
+        output_tokens,
+        billable_tokens,
+        api_total_tokens,
+        estimated_cost,
+        latency_ms,
+        status,
+        image_name,
+        sdk_key,
+        sdk_version,
+        environment
       )
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       `,
       [
         req.user.id,
+        user?.name || null,
+        user?.email || null,
         req.application.id,
         "Gemini",
         model,
@@ -128,7 +144,7 @@ export const analyzeImage = async (req, res) => {
       ]
     );
 
-    res.json({
+    return res.json({
       success: true,
       description: response.text,
       usage,
@@ -139,28 +155,33 @@ export const analyzeImage = async (req, res) => {
     });
 
   } catch (error) {
+
     console.error(error);
 
-    // Log failed request
     try {
+
       await db.execute(
         `
         INSERT INTO request_logs
         (
-            user_id,
-            project_id,
-            provider,
-            model,
-            status,
-            error_message,
-            sdk_key,
-            sdk_version,
-            environment
+          user_id,
+          user_name,
+          user_email,
+          project_id,
+          provider,
+          model,
+          status,
+          error_message,
+          sdk_key,
+          sdk_version,
+          environment
         )
-        VALUES (?,?,?,?,?,?,?,?,?)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
         `,
         [
           req.user?.id || null,
+          user?.name || null,
+          user?.email || null,
           req.application?.id || null,
           "Gemini",
           req.body?.model || "gemini-2.5-flash-lite",
@@ -171,11 +192,14 @@ export const analyzeImage = async (req, res) => {
           req.sdk?.environment || null,
         ]
       );
+
     } catch (logError) {
+
       console.error("Failed to save request log:", logError);
+
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
@@ -184,6 +208,7 @@ export const analyzeImage = async (req, res) => {
 
 export const getAvailableModels = async (req, res) => {
   try {
+
     const [rows] = await db.execute(`
       SELECT model_name
       FROM model_pricing
@@ -196,11 +221,13 @@ export const getAvailableModels = async (req, res) => {
     });
 
   } catch (err) {
+
     console.error(err);
 
     res.status(500).json({
       success: false,
       message: err.message,
     });
+
   }
 };

@@ -16,7 +16,14 @@ export const createApplication = async (req, res) => {
     }
 
     const sdkKey = generateSdkKey();
-
+console.log("INSERT VALUES:");
+console.log({
+  appName,
+  description,
+  sdkKey,
+  user: req.user,
+  ownerId: req.user?.id,
+});
     const [result] = await db.execute(
       `
       INSERT INTO applications
