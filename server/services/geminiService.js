@@ -70,7 +70,7 @@ Conclusion
       ?.map((part) => part.text || "")
       .join("") ||
     "";
-
+console.log(result.usageMetadata);
   return {
     text,
     usageMetadata: result.usageMetadata,

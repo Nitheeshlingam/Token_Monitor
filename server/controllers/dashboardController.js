@@ -155,7 +155,7 @@ input_tokens,
 
 output_tokens,
 
-api_total_tokens AS total_tokens,
+billable_tokens AS total_tokens,
 
 estimated_cost,
 
@@ -201,69 +201,55 @@ message:err.message
 // Daily Usage
 // ===========================================
 
-export const getDailyUsage = async(req,res)=>{
+// ===========================================
+// Daily Usage
+// ===========================================
 
+export const getDailyUsage = async (req, res) => {
 
-try{
+  try {
 
-
-const [rows]=await db.execute(
-`
-
-SELECT
-
+    const [rows] = await db.execute(
+      `
+     SELECT
 
 DATE(created_at) AS day,
 
-
 COUNT(*) AS requests,
 
+COALESCE(SUM(input_tokens),0) AS inputTokens,
 
-SUM(input_tokens) AS inputTokens,
+COALESCE(SUM(output_tokens),0) AS outputTokens,
 
+COALESCE(SUM(billable_tokens),0) AS billableTokens,
 
-SUM(output_tokens) AS outputTokens,
-
-
-SUM(api_total_tokens) AS totalTokens,
-
-
-SUM(estimated_cost) AS estimatedCost
-
+COALESCE(SUM(estimated_cost),0) AS estimatedCost
 
 FROM request_logs
 
-
 GROUP BY DATE(created_at)
 
+ORDER BY DATE(created_at);
+      `
+    );
 
-ORDER BY day
+    res.json({
+      success: true,
+      data: rows
+    });
 
+  } catch (err) {
 
-`
-);
+    console.error(err);
 
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
 
-res.json({
-success:true,
-data:rows
-});
-
-
-}catch(err){
-
-console.error(err);
-
-res.status(500).json({
-success:false,
-message:err.message
-});
-
-}
-
+  }
 
 };
-
 
 
 
@@ -404,85 +390,76 @@ message:err.message
 // ===========================================
 
 
-export const getApplicationDashboard = async(req,res)=>{
+export const getApplicationDashboard = async (req, res) => {
 
+  try {
 
-try{
+    const { id } = req.params;
 
+    const [[summary]] = await db.execute(
 
-const {id}=req.params;
+      `
+      SELECT
 
+        COUNT(*) AS total_requests,
 
-const [[summary]] = await db.execute(
+        COALESCE(
+          SUM(input_tokens),0
+        ) AS input_tokens,
 
-`
+        COALESCE(
+          SUM(output_tokens),0
+        ) AS output_tokens,
 
-SELECT
+        COALESCE(
+          SUM(billable_tokens),0
+        ) AS billable_tokens,
 
-COUNT(*) AS total_requests,
+        COALESCE(
+          SUM(estimated_cost),0
+        ) AS total_cost,
 
-COALESCE(
-SUM(input_tokens),0
-) AS input_tokens,
+        COALESCE(
+          AVG(latency_ms),0
+        ) AS average_latency,
 
-COALESCE(
-SUM(output_tokens),0
-) AS output_tokens,
+        SUM(
+          CASE
+            WHEN status = 'SUCCESS' THEN 1
+            ELSE 0
+          END
+        ) AS success_requests,
 
-COALESCE(
-SUM(billable_tokens),0
-) AS billable_tokens,
+        SUM(
+          CASE
+            WHEN status = 'FAILED' THEN 1
+            ELSE 0
+          END
+        ) AS failed_requests
 
-COALESCE(
-SUM(api_total_tokens),0
-) AS total_tokens,
+      FROM request_logs
 
-COALESCE(
-SUM(estimated_cost),0
-) AS total_cost,
+      WHERE application_id = ?
 
-SUM(
-status='SUCCESS'
-) AS success_requests,
+      `,
+      [id]
 
-SUM(
-status='FAILED'
-) AS failed_requests
+    );
 
-FROM request_logs
+    res.json({
+      success: true,
+      summary
+    });
 
-WHERE application_id = ?
+  } catch (err) {
 
-`,
-[id]
+    console.error(err);
 
-);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
 
-
-
-res.json({
-
-success:true,
-
-summary
-
-});
-
-
-}catch(err){
-
-console.error(err);
-
-
-res.status(500).json({
-
-success:false,
-
-message:err.message
-
-});
-
-
-}
+  }
 
 };

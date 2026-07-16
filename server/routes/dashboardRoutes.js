@@ -14,7 +14,7 @@ import authMiddleware from "../middleware/authMiddleware.js";
 const router = express.Router();
 router.get("/history", getHistory);
 router.get("/summary", getSummary);
-router.get("/daily-usage", getDailyUsage);
+router.get("/daily", getDailyUsage);
 router.get("/models", getModels);
 router.get("/details", getDetails);
 router.get(

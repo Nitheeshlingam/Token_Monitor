@@ -1,4 +1,5 @@
 import db from "../config/db.js";
+import { getUsdToInrRate } from "../services/exchangeRateService.js";
 
 export const saveSdkLog = async (req, res) => {
   console.log("========== SDK LOG ==========");
@@ -92,7 +93,11 @@ console.log("Authenticated User:", {
         (outputTokens / 1000000) *
         Number(price.output_price_per_million);
 
-      estimatedCost = inputCost + outputCost;
+      const USD_TO_INR = await getUsdToInrRate();
+
+      estimatedCost = Number(
+        ((inputCost + outputCost) * USD_TO_INR).toFixed(6)
+      );
     }
 console.log("req.user =", req.user);
     // Save Request Log

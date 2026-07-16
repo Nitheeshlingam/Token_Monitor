@@ -1,5 +1,6 @@
 import { analyzeImageWithGemini } from "../services/geminiService.js";
 import db from "../config/db.js";
+import { getUsdToInrRate } from "../services/exchangeRateService.js";
 
 export const analyzeImage = async (req, res) => {
   const startTime = Date.now();
@@ -84,7 +85,7 @@ export const analyzeImage = async (req, res) => {
 
     const pricing = priceRows[0];
 
-    const USD_TO_INR = 95.45;
+    const USD_TO_INR = await getUsdToInrRate();
 
     const inputCost =
       (inputTokens / 1000000) *

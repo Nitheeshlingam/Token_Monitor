@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+// import axios from "axios";
 
 import DashboardCards from "../components/DashboardCards";
 import DailyUsageChart from "../components/DailyUsageChart";
-import ImageAnalysis from "../components/ImageAnalysis";
+// import ImageAnalysis from "../components/ImageAnalysis";
 
 import "../App.css";
 
@@ -103,14 +103,14 @@ function Dashboard() {
       >
         <h1>AI Token Monitor</h1>
 
-        <button onClick={logout}>
+        {/* <button onClick={logout}>
           Logout
-        </button>
+        </button> */}
       </div>
 
       {/* Upload */}
 
-      <div className="upload-section">
+      {/* <div className="upload-section">
 
         <input
           type="file"
@@ -150,13 +150,13 @@ function Dashboard() {
           Analyze Image
         </button>
 
-      </div>
+      </div> */}
 
       <DashboardCards />
 
       <DailyUsageChart />
 
-      <ImageAnalysis description={description} />
+      {/* <ImageAnalysis description={description} /> */}
 
     </div>
   );
