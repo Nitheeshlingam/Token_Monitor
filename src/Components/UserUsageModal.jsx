@@ -5,8 +5,12 @@ export default function UserUsageModal({
   title,
   users,
   onClose,
+  activeColumn,
 }) {
   if (!open) return null;
+
+  const isActive = (column) =>
+    activeColumn === column ? "active-column" : "";
 
   return (
     <div className="modal-overlay">
@@ -33,12 +37,30 @@ export default function UserUsageModal({
                 <th>Email</th>
                 <th>Provider</th>
                 <th>Model</th>
-                <th>Latency (ms)</th>
-                <th>Input</th>
-                <th>Output</th>
-                <th>Billable</th>
-                <th>Cost (₹)</th>
-                <th>Status</th>
+                <th className={isActive("latency")}>
+                  Latency (ms)
+                </th>
+
+                <th className={isActive("input")}>
+                  Input
+                </th>
+
+                <th className={isActive("output")}>
+                  Output
+                </th>
+
+                <th className={isActive("billable")}>
+                  Total Token
+                </th>
+
+                <th className={isActive("cost")}>
+                  Cost (₹)
+                </th>
+
+                <th className={isActive("success")}>
+                  Status
+                </th>
+
                 <th>Date</th>
               </tr>
             </thead>
@@ -71,22 +93,27 @@ export default function UserUsageModal({
 
                     <td>{user.model}</td>
 
-                    <td>{user.latency_ms} ms</td>
-
-                    <td>{user.input_tokens}</td>
-
-                    <td>{user.output_tokens}</td>
-
-                    <td>{user.billable_tokens}</td>
-
-                    <td>
-                      ₹
-                      {Number(
-                        user.estimated_cost
-                      ).toFixed(6)}
+                    <td className={isActive("latency")}>
+                      {user.latency_ms} ms
                     </td>
 
-                    <td>
+                    <td className={isActive("input")}>
+                      {user.input_tokens}
+                    </td>
+
+                    <td className={isActive("output")}>
+                      {user.output_tokens}
+                    </td>
+
+                    <td className={isActive("billable")}>
+                      {user.billable_tokens}
+                    </td>
+
+                    <td className={isActive("cost")}>
+                      ₹{Number(user.estimated_cost).toFixed(6)}
+                    </td>
+
+                    <td className={isActive("success")}>
                       <span
                         className={
                           user.status === "SUCCESS"

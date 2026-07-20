@@ -337,18 +337,20 @@ export const getModels = async (req, res) => {
 
 
 export const getDetails = async (req, res) => {
-
   try {
-
     const {
+      type,
       startDate,
       endDate,
-      model = "ALL"
+      model = "ALL",
     } = req.query;
 
     let conditions = [];
     let params = [];
 
+    // -----------------------
+    // Date Filter
+    // -----------------------
     if (startDate) {
       conditions.push("DATE(created_at) >= ?");
       params.push(startDate);
@@ -359,9 +361,50 @@ export const getDetails = async (req, res) => {
       params.push(endDate);
     }
 
+    // -----------------------
+    // Model Filter
+    // -----------------------
     if (model !== "ALL") {
       conditions.push("model = ?");
       params.push(model);
+    }
+
+    // -----------------------
+    // Card Filter
+    // -----------------------
+    switch (type) {
+      case "success":
+        conditions.push("status = 'SUCCESS'");
+        break;
+
+      case "failed":
+        conditions.push("status = 'FAILED'");
+        break;
+
+      case "input":
+        conditions.push("input_tokens > 0");
+        break;
+
+      case "output":
+        conditions.push("output_tokens > 0");
+        break;
+
+      case "billable":
+        conditions.push("billable_tokens > 0");
+        break;
+
+      case "cost":
+        conditions.push("estimated_cost > 0");
+        break;
+
+      case "latency":
+        conditions.push("latency_ms IS NOT NULL");
+        break;
+
+      case "requests":
+      default:
+        // No additional filter
+        break;
     }
 
     const where =
@@ -372,18 +415,15 @@ export const getDetails = async (req, res) => {
     const [rows] = await db.execute(
       `
       SELECT
-
         id,
         user_name AS name,
         user_email AS email,
         provider,
         model,
-
         input_tokens,
         output_tokens,
         billable_tokens,
         api_total_tokens AS total_tokens,
-
         estimated_cost,
         latency_ms,
         status,
@@ -400,20 +440,18 @@ export const getDetails = async (req, res) => {
 
     res.json({
       success: true,
+      type,
       data: rows,
     });
 
   } catch (err) {
-
     console.error(err);
 
     res.status(500).json({
       success: false,
       message: err.message,
     });
-
   }
-
 };
 
 

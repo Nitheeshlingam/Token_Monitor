@@ -27,6 +27,9 @@ export default function DashboardCards({
   const [modalTitle, setModalTitle] = useState("");
   const [users, setUsers] = useState([]);
 
+  // NEW
+  const [selectedType, setSelectedType] = useState("");
+
   const estimatedCost = Number(dashboard.estimatedCost || 0);
 
   // -----------------------
@@ -39,8 +42,6 @@ export default function DashboardCards({
         endDate,
         model
       );
-
-      console.log("Dashboard:", res.data);
 
       setDashboard(
         res.data.data || {
@@ -64,6 +65,10 @@ export default function DashboardCards({
   // -----------------------
   const openDetails = async (type, title) => {
     try {
+
+      // Remember which card was clicked
+      setSelectedType(type);
+
       const res = await getDetails(
         type,
         startDate,
@@ -71,11 +76,10 @@ export default function DashboardCards({
         model
       );
 
-      console.log("Details:", res.data);
-
       setUsers(res.data.data || []);
       setModalTitle(title);
       setOpenModal(true);
+
     } catch (err) {
       console.error("Details Error:", err);
     }
@@ -122,7 +126,9 @@ export default function DashboardCards({
           }
         >
           <h3>Input Tokens</h3>
-          <h1>{Number(dashboard.inputTokens).toLocaleString()}</h1>
+          <h1>
+            {Number(dashboard.inputTokens).toLocaleString()}
+          </h1>
         </div>
 
         <div
@@ -135,7 +141,9 @@ export default function DashboardCards({
           }
         >
           <h3>Output Tokens</h3>
-          <h1>{Number(dashboard.outputTokens).toLocaleString()}</h1>
+          <h1>
+            {Number(dashboard.outputTokens).toLocaleString()}
+          </h1>
         </div>
 
         <div
@@ -148,7 +156,9 @@ export default function DashboardCards({
           }
         >
           <h3>Total Tokens</h3>
-          <h1>{Number(dashboard.billableTokens).toLocaleString()}</h1>
+          <h1>
+            {Number(dashboard.billableTokens).toLocaleString()}
+          </h1>
         </div>
 
         <div
@@ -209,6 +219,7 @@ export default function DashboardCards({
         open={openModal}
         title={modalTitle}
         users={users}
+        activeColumn={selectedType}
         onClose={() => setOpenModal(false)}
       />
     </>

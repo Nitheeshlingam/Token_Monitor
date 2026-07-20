@@ -74,3 +74,9 @@ td{
 tbody tr:hover{
     background:#f8f9fa;
 }
+
+.active-column {
+    font-weight: bold;
+    background: #dbeafe;
+    color: #2563eb;
+}
