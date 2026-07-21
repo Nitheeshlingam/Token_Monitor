@@ -16,7 +16,7 @@ function UploadImage() {
   const loadModels = async () => {
   try {
     const res = await axios.get(
-      "http://localhost:5000/api/image/models"
+      `${import.meta.env.VITE_API_URL}/image/models`
     );
 
     console.log("===============");
@@ -69,7 +69,7 @@ useEffect(() => {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/gemini/analyze",
+        `${import.meta.env.VITE_API_URL}/gemini/analyze`,
         formData,
         {
           headers: {

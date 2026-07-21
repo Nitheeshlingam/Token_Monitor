@@ -31,7 +31,7 @@ export default function Dashboard() {
   const loadModels = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:5000/api/dashboard/models",
+        `${import.meta.env.VITE_API_URL}/dashboard/models`,
         {
           params: {
             startDate,

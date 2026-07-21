@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API = "http://localhost:5000/api/dashboard";
+const API = `${import.meta.env.VITE_API_URL}/dashboard`;
 
 // Common query parameters
 const buildParams = (
